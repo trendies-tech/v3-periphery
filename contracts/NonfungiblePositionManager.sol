@@ -17,7 +17,6 @@ import './base/ERC721Permit.sol';
 import './base/PeripheryValidation.sol';
 import './base/SelfPermit.sol';
 import './base/PoolInitializer.sol';
-import 'forge-std/console2.sol';
 
 /// @title NFT positions
 /// @notice Wraps Uniswap V3 positions in the ERC721 non-fungible token interface
@@ -138,7 +137,6 @@ contract NonfungiblePositionManager is
         returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1)
     {
         IUniswapV3Pool pool;
-        console2.log('adding liquidity');
         (liquidity, amount0, amount1, pool) = addLiquidity(
             AddLiquidityParams({
                 token0: params.token0,
@@ -154,7 +152,6 @@ contract NonfungiblePositionManager is
             })
         );
 
-        console2.log('MINTING!');
         _mint(params.recipient, (tokenId = _nextId++));
 
         bytes32 positionKey = PositionKey.compute(address(this), params.tickLower, params.tickUpper);
@@ -274,10 +271,6 @@ contract NonfungiblePositionManager is
         IUniswapV3Pool pool = IUniswapV3Pool(PoolAddress.computeAddress(factory, poolKey));
         (amount0, amount1) = pool.burn(position.tickLower, position.tickUpper, params.liquidity);
 
-        console2.log('amount0:', amount0);
-        console2.log('amount1:', amount1);
-        console2.log('params.amount0Min:', params.amount0Min);
-        console2.log('params.amount1Min:', params.amount1Min);
         require(amount0 >= params.amount0Min && amount1 >= params.amount1Min, 'Price slippage check');
 
         bytes32 positionKey = PositionKey.compute(address(this), position.tickLower, position.tickUpper);
