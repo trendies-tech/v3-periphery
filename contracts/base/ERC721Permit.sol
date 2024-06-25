@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity =0.7.6;
+pragma solidity >=0.7.6;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
@@ -22,11 +22,7 @@ abstract contract ERC721Permit is BlockTimestamp, ERC721, IERC721Permit {
     bytes32 private immutable versionHash;
 
     /// @notice Computes the nameHash and versionHash
-    constructor(
-        string memory name_,
-        string memory symbol_,
-        string memory version_
-    ) ERC721(name_, symbol_) {
+    constructor(string memory name_, string memory symbol_, string memory version_) ERC721(name_, symbol_) {
         nameHash = keccak256(bytes(name_));
         versionHash = keccak256(bytes(version_));
     }
@@ -62,18 +58,17 @@ abstract contract ERC721Permit is BlockTimestamp, ERC721, IERC721Permit {
     ) external payable override {
         require(_blockTimestamp() <= deadline, 'Permit expired');
 
-        bytes32 digest =
-            keccak256(
-                abi.encodePacked(
-                    '\x19\x01',
-                    DOMAIN_SEPARATOR(),
-                    keccak256(abi.encode(PERMIT_TYPEHASH, spender, tokenId, _getAndIncrementNonce(tokenId), deadline))
-                )
-            );
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                '\x19\x01',
+                DOMAIN_SEPARATOR(),
+                keccak256(abi.encode(PERMIT_TYPEHASH, spender, tokenId, _getAndIncrementNonce(tokenId), deadline))
+            )
+        );
         address owner = ownerOf(tokenId);
         require(spender != owner, 'ERC721Permit: approval to current owner');
 
-        if (Address.isContract(owner)) {
+        if (isContract(owner)) {
             require(IERC1271(owner).isValidSignature(digest, abi.encodePacked(r, s, v)) == 0x1626ba7e, 'Unauthorized');
         } else {
             address recoveredAddress = ecrecover(digest, v, r, s);
@@ -81,6 +76,14 @@ abstract contract ERC721Permit is BlockTimestamp, ERC721, IERC721Permit {
             require(recoveredAddress == owner, 'Unauthorized');
         }
 
-        _approve(spender, tokenId);
+        _approve(spender, tokenId, owner);
+    }
+
+    function isContract(address account) internal view returns (bool) {
+        uint256 size;
+        assembly {
+            size := extcodesize(account)
+        }
+        return size > 0;
     }
 }
